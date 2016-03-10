@@ -1,0 +1,12 @@
+/target
+/src/main/resources/application.local.properties
+/src/test/resources/application.test.local.properties
+*~
+.xml
+.bpmn
+WebContent/WEB-INF/classes
+.DS_Store
+.ant_targets
+*.iml
+.idea
+resources/application.local.properties
