@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:activiti="http://activiti.org/bpmn" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC" xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI" typeLanguage="http://www.w3.org/2001/XMLSchema" expressionLanguage="http://www.w3.org/1999/XPath" targetNamespace="http://www.kafeitu.me/activiti/bloodCulture">
-  <process id="bloodCulture" name="血培养流程" isExecutable="true">
+  <process id="bloodCulture2" name="血培养流程" isExecutable="true">
     <documentation>血培养流程</documentation>
     <extensionElements>
       <activiti:executionListener event="start" expression="${execution.setVariable('bloodCulture', bloodCultureEntityManager.newBloodCulture(execution))}"></activiti:executionListener>
@@ -8,7 +8,7 @@
     </extensionElements>
     <startEvent id="blood_sample" name="start" activiti:initiator="userId">
       <extensionElements>
-        <activiti:formProperty id="code" name="条码" type="string"></activiti:formProperty>
+        <activiti:formProperty id="code" name="样本条码" type="string"></activiti:formProperty>
         <activiti:formProperty id="sampleType" name="标本类型" type="string"></activiti:formProperty>
         <activiti:formProperty id="patientName" name="病人名称" type="string"></activiti:formProperty>
         <activiti:formProperty id="patientGender" name="性别" type="string"></activiti:formProperty>
@@ -31,7 +31,7 @@
     <sequenceFlow id="flow2" sourceRef="blood_sample" targetRef="cultureAudit"></sequenceFlow>
     <userTask id="cultureAudit" name="培养结果" activiti:assignee="${userId}">
       <extensionElements>
-        <activiti:formProperty id="code" name="条码" type="string" expression="${bloodCulture.code}" writable="false"></activiti:formProperty>
+        <activiti:formProperty id="code" name="样本条码" type="string" expression="${bloodCulture.code}" writable="false"></activiti:formProperty>
         <activiti:formProperty id="sampleType" name="标本类型" type="string" expression="${bloodCulture.sampleType}" writable="false"></activiti:formProperty>
         <activiti:formProperty id="patientName" name="病人名称" type="string" expression="${bloodCulture.patientName}" writable="false"></activiti:formProperty>
         <activiti:formProperty id="patientGender" name="性别" type="string" expression="${bloodCulture.patientGender}" writable="false"></activiti:formProperty>
@@ -39,37 +39,34 @@
         <activiti:formProperty id="patientCondition" name="病情描述" type="string" expression="${bloodCulture.patientCondition}" writable="false"></activiti:formProperty>
         <activiti:formProperty id="sampleRevTime" name="标本接收时间" type="date" expression="${bloodCulture.sampleRevTime}" datePattern="yyyy-MM-dd hh:mm:ss" writable="false"></activiti:formProperty>
         <activiti:formProperty id="peiyangTime" name="标本培养开始时间" type="date" expression="${bloodCulture.peiyangTime}" datePattern="yyyy-MM-dd hh:mm:ss" writable="false"></activiti:formProperty>
-        <activiti:formProperty id="deptLeaderApproved" name="鉴定结果" type="enum" required="true">
-          <activiti:value id="false" name="阳性，细菌鉴定药敏实验"></activiti:value>
-          <activiti:value id="true" name="阴性，没有细菌生长"></activiti:value>
+        <activiti:formProperty id="reasonres" name="鉴定结果" type="enum" required="true">
+          <activiti:value id="0" name="阳性，细菌鉴定药敏实验"></activiti:value>
+          <activiti:value id="1" name="阴性，没有细菌生长"></activiti:value>
         </activiti:formProperty>
       </extensionElements>
     </userTask>
     <sequenceFlow id="flow3" sourceRef="cultureAudit" targetRef="exclusivegateway5"></sequenceFlow>
     <exclusiveGateway id="exclusivegateway5" name="Exclusive Gateway"></exclusiveGateway>
     <sequenceFlow id="flow4" name="阳性" sourceRef="exclusivegateway5" targetRef="fork1">
-      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${deptLeaderApproved == 'false'}]]></conditionExpression>
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${reasonres=='0'}]]></conditionExpression>
     </sequenceFlow>
     <sequenceFlow id="flow5" name="阴性" sourceRef="exclusivegateway5" targetRef="endevent1">
-      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${deptLeaderApproved == 'true'}]]></conditionExpression>
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${reasonres!='0'}]]></conditionExpression>
     </sequenceFlow>
     <parallelGateway id="fork1"></parallelGateway>
     <sequenceFlow id="sequenceFlow-07d094aa-63cd-4446-80f7-13bfe8302ada" sourceRef="fork1" targetRef="G-ranse"></sequenceFlow>
     <sequenceFlow id="sequenceFlow-82debfc7-ef42-48df-8124-b49be444f689" sourceRef="fork1" targetRef="pingban"></sequenceFlow>
     <userTask id="G-ranse" name="G染色涂片" activiti:assignee="${userId}">
       <extensionElements>
-        <activiti:formProperty id="code" name="条码" type="string" expression="${bloodCulture.code}" writable="false"></activiti:formProperty>
+        <activiti:formProperty id="code" name="样本条码" type="string" expression="${bloodCulture.code}" writable="false"></activiti:formProperty>
         <activiti:formProperty id="sampleType" name="标本类型" type="string" expression="${bloodCulture.sampleType}" writable="false"></activiti:formProperty>
         <activiti:formProperty id="patientName" name="病人名称" type="string" expression="${bloodCulture.patientName}" writable="false"></activiti:formProperty>
         <activiti:formProperty id="patientGender" name="性别" type="string" expression="${bloodCulture.patientGender}" writable="false"></activiti:formProperty>
         <activiti:formProperty id="patientAge" name="年龄" type="string" expression="${bloodCulture.patientAge}" writable="false"></activiti:formProperty>
         <activiti:formProperty id="patientCondition" name="病情描述" type="string" expression="${bloodCulture.patientCondition}" writable="false"></activiti:formProperty>
         <activiti:formProperty id="sampleRevTime" name="标本接收时间" type="date" expression="${bloodCulture.sampleRevTime}" datePattern="yyyy-MM-dd hh:mm:ss" writable="false"></activiti:formProperty>
-        <activiti:formProperty id="GhasVirus" name="镜检是否见菌体" type="enum" required="true">
-          <activiti:value id="true" name="见菌体"></activiti:value>
-          <activiti:value id="false" name="未见菌体"></activiti:value>
-        </activiti:formProperty>
-        <activiti:formProperty id="Greason" name="G染色镜检结果提示" type="enum" required="true">
+        <activiti:formProperty id="reasonres" name="G染色镜检结果提示" type="enum" required="true">
+          <activiti:value id="0" name="未见菌体"></activiti:value>
           <activiti:value id="1" name="G+球菌，成堆，可疑为葡萄球菌"></activiti:value>
           <activiti:value id="2" name="G+球菌，成链或成对，可疑为链球菌"></activiti:value>
         </activiti:formProperty>
@@ -78,25 +75,22 @@
     <sequenceFlow id="flow3-1" sourceRef="G-ranse" targetRef="exclusivegateway5-3"></sequenceFlow>
     <exclusiveGateway id="exclusivegateway5-3" name="Exclusive Gateway"></exclusiveGateway>
     <sequenceFlow id="flow3-2" name="见菌体" sourceRef="exclusivegateway5-3" targetRef="endevent1">
-      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${GhasVirus == 'true'}]]></conditionExpression>
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${reasonres!='0'}]]></conditionExpression>
     </sequenceFlow>
     <sequenceFlow id="flow3-3" name="未见菌体" sourceRef="exclusivegateway5-3" targetRef="Rui-ranse">
-      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${GhasVirus == 'false'}]]></conditionExpression>
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${reasonres=='0'}]]></conditionExpression>
     </sequenceFlow>
     <userTask id="Rui-ranse" name="瑞氏染色涂片" activiti:assignee="${userId}">
       <extensionElements>
-        <activiti:formProperty id="code" name="条码" type="string" expression="${bloodCulture.code}" writable="false"></activiti:formProperty>
+        <activiti:formProperty id="code" name="样本条码" type="string" expression="${bloodCulture.code}" writable="false"></activiti:formProperty>
         <activiti:formProperty id="sampleType" name="标本类型" type="string" expression="${bloodCulture.sampleType}" writable="false"></activiti:formProperty>
         <activiti:formProperty id="patientName" name="病人名称" type="string" expression="${bloodCulture.patientName}" writable="false"></activiti:formProperty>
         <activiti:formProperty id="patientGender" name="性别" type="string" expression="${bloodCulture.patientGender}" writable="false"></activiti:formProperty>
         <activiti:formProperty id="patientAge" name="年龄" type="string" expression="${bloodCulture.patientAge}" writable="false"></activiti:formProperty>
         <activiti:formProperty id="patientCondition" name="病情描述" type="string" expression="${bloodCulture.patientCondition}" writable="false"></activiti:formProperty>
         <activiti:formProperty id="sampleRevTime" name="标本接收时间" type="date" expression="${bloodCulture.sampleRevTime}" datePattern="yyyy-MM-dd hh:mm:ss" writable="false"></activiti:formProperty>
-        <activiti:formProperty id="RhasVirus" name="镜检是否见菌体" type="enum" required="true">
-          <activiti:value id="true" name="见菌体"></activiti:value>
-          <activiti:value id="false" name="未见菌体"></activiti:value>
-        </activiti:formProperty>
-        <activiti:formProperty id="Rreason" name="瑞氏染色镜检结果提示" type="enum" required="true">
+        <activiti:formProperty id="reasonres" name="瑞氏染色镜检结果提示" type="enum" required="true">
+          <activiti:value id="0" name="未见菌体"></activiti:value>
           <activiti:value id="1" name="G+球菌，成堆，可疑为葡萄球菌"></activiti:value>
           <activiti:value id="2" name="G+球菌，成链或成对，可疑为链球菌"></activiti:value>
         </activiti:formProperty>
@@ -105,25 +99,22 @@
     <sequenceFlow id="flow3-4" sourceRef="Rui-ranse" targetRef="exclusivegateway5-4"></sequenceFlow>
     <exclusiveGateway id="exclusivegateway5-4" name="Exclusive Gateway"></exclusiveGateway>
     <sequenceFlow id="flow3-5" name="见菌体" sourceRef="exclusivegateway5-4" targetRef="endevent1">
-      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${RhasVirus == 'true'}]]></conditionExpression>
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${reasonres!='0'}]]></conditionExpression>
     </sequenceFlow>
     <sequenceFlow id="flow3-6" name="未见菌体" sourceRef="exclusivegateway5-4" targetRef="KS-ranse">
-      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${RhasVirus == 'false'}]]></conditionExpression>
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${reasonres=='0'}]]></conditionExpression>
     </sequenceFlow>
     <userTask id="KS-ranse" name="抗酸染色涂片" activiti:assignee="${userId}">
       <extensionElements>
-        <activiti:formProperty id="code" name="条码" type="string" expression="${bloodCulture.code}" writable="false"></activiti:formProperty>
+        <activiti:formProperty id="code" name="样本条码" type="string" expression="${bloodCulture.code}" writable="false"></activiti:formProperty>
         <activiti:formProperty id="sampleType" name="标本类型" type="string" expression="${bloodCulture.sampleType}" writable="false"></activiti:formProperty>
         <activiti:formProperty id="patientName" name="病人名称" type="string" expression="${bloodCulture.patientName}" writable="false"></activiti:formProperty>
         <activiti:formProperty id="patientGender" name="性别" type="string" expression="${bloodCulture.patientGender}" writable="false"></activiti:formProperty>
         <activiti:formProperty id="patientAge" name="年龄" type="string" expression="${bloodCulture.patientAge}" writable="false"></activiti:formProperty>
         <activiti:formProperty id="patientCondition" name="病情描述" type="string" expression="${bloodCulture.patientCondition}" writable="false"></activiti:formProperty>
         <activiti:formProperty id="sampleRevTime" name="标本接收时间" type="date" expression="${bloodCulture.sampleRevTime}" datePattern="yyyy-MM-dd hh:mm:ss" writable="false"></activiti:formProperty>
-        <activiti:formProperty id="KhasVirus" name="镜检是否见菌体" type="enum" required="true">
-          <activiti:value id="true" name="见菌体"></activiti:value>
-          <activiti:value id="false" name="未见菌体"></activiti:value>
-        </activiti:formProperty>
-        <activiti:formProperty id="Kreason" name="抗酸染色镜检结果提示" type="enum" required="true">
+        <activiti:formProperty id="reasonres" name="抗酸染色镜检结果提示" type="enum" required="true">
+          <activiti:value id="0" name="未见菌体"></activiti:value>
           <activiti:value id="1" name="1-8条/300视野"></activiti:value>
           <activiti:value id="2" name="1+：3-9条/100视野"></activiti:value>
           <activiti:value id="3" name="2+：1-9条/10视野，连续100个视野"></activiti:value>
@@ -135,14 +126,14 @@
     <sequenceFlow id="flow3-7" sourceRef="KS-ranse" targetRef="exclusivegateway5-5"></sequenceFlow>
     <exclusiveGateway id="exclusivegateway5-5" name="Exclusive Gateway"></exclusiveGateway>
     <sequenceFlow id="flow3-8" name="见菌体" sourceRef="exclusivegateway5-5" targetRef="endevent1">
-      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${KhasVirus == 'true'}]]></conditionExpression>
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${reasonres!='0'}]]></conditionExpression>
     </sequenceFlow>
     <sequenceFlow id="flow3-9" name="未见菌体" sourceRef="exclusivegateway5-5" targetRef="endevent1">
-      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${KhasVirus == 'false'}]]></conditionExpression>
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${reasonres=='0'}]]></conditionExpression>
     </sequenceFlow>
     <userTask id="pingban" name="平板转种" activiti:assignee="${userId}">
       <extensionElements>
-        <activiti:formProperty id="code" name="条码" type="string" expression="${bloodCulture.code}" writable="false"></activiti:formProperty>
+        <activiti:formProperty id="code" name="样本条码" type="string" expression="${bloodCulture.code}" writable="false"></activiti:formProperty>
         <activiti:formProperty id="sampleType" name="标本类型" type="string" expression="${bloodCulture.sampleType}" writable="false"></activiti:formProperty>
         <activiti:formProperty id="patientName" name="病患名称" type="string" expression="${bloodCulture.patientName}" writable="false"></activiti:formProperty>
         <activiti:formProperty id="patientGender" name="性别" type="string" expression="${bloodCulture.patientGender}" writable="false"></activiti:formProperty>
@@ -167,7 +158,7 @@
     <sequenceFlow id="flow6" sourceRef="waitTask" targetRef="pingbanAudit"></sequenceFlow>
     <userTask id="pingbanAudit" name="平板培养结果" activiti:assignee="${userId}">
       <extensionElements>
-        <activiti:formProperty id="code" name="条码" type="string" expression="${bloodCulture.code}" writable="false"></activiti:formProperty>
+        <activiti:formProperty id="code" name="样本条码" type="string" expression="${bloodCulture.code}" writable="false"></activiti:formProperty>
         <activiti:formProperty id="sampleType" name="标本类型" type="string" expression="${bloodCulture.sampleType}" writable="false"></activiti:formProperty>
         <activiti:formProperty id="patientName" name="病人名称" type="string" expression="${bloodCulture.patientName}" writable="false"></activiti:formProperty>
         <activiti:formProperty id="patientGender" name="性别" type="string" expression="${bloodCulture.patientGender}" writable="false"></activiti:formProperty>
@@ -175,34 +166,31 @@
         <activiti:formProperty id="patientCondition" name="病情描述" type="string" expression="${bloodCulture.patientCondition}" writable="false"></activiti:formProperty>
         <activiti:formProperty id="sampleRevTime" name="标本接收时间" type="date" expression="${bloodCulture.sampleRevTime}" datePattern="yyyy-MM-dd hh:mm:ss" writable="false"></activiti:formProperty>
         <activiti:formProperty id="pingbanTime" name="平板开始孵化时间" type="date" expression="${bloodCulture.pingbanTime}" datePattern="yyyy-MM-dd hh:mm:ss" writable="false"></activiti:formProperty>
-        <activiti:formProperty id="pingbanApproved" name="平板鉴定结果" type="enum" required="true">
-          <activiti:value id="true" name="有细菌鉴生长"></activiti:value>
-          <activiti:value id="false" name="无细菌生长"></activiti:value>
+        <activiti:formProperty id="reasonres" name="平板鉴定结果" type="enum" required="true">
+          <activiti:value id="1" name="有细菌鉴生长"></activiti:value>
+          <activiti:value id="0" name="无细菌生长"></activiti:value>
         </activiti:formProperty>
       </extensionElements>
     </userTask>
     <sequenceFlow id="flow4-2" sourceRef="pingbanAudit" targetRef="exclusivegateway6"></sequenceFlow>
     <exclusiveGateway id="exclusivegateway6" name="Exclusive Gateway"></exclusiveGateway>
     <sequenceFlow id="flow4-3" name="无细菌生长" sourceRef="exclusivegateway6" targetRef="endevent1">
-      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${pingbanApproved == 'false'}]]></conditionExpression>
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${reasonres=='0'}]]></conditionExpression>
     </sequenceFlow>
     <sequenceFlow id="flow4-4" name="有细菌鉴生长" sourceRef="exclusivegateway6" targetRef="G-ranse2">
-      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${pingbanApproved == 'true'}]]></conditionExpression>
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${reasonres!='0'}]]></conditionExpression>
     </sequenceFlow>
     <userTask id="G-ranse2" name="G染色涂片" activiti:assignee="${userId}">
       <extensionElements>
-        <activiti:formProperty id="code" name="条码" type="string" expression="${bloodCulture.code}" writable="false"></activiti:formProperty>
+        <activiti:formProperty id="code" name="样本条码" type="string" expression="${bloodCulture.code}" writable="false"></activiti:formProperty>
         <activiti:formProperty id="sampleType" name="标本类型" type="string" expression="${bloodCulture.sampleType}" writable="false"></activiti:formProperty>
         <activiti:formProperty id="patientName" name="病人名称" type="string" expression="${bloodCulture.patientName}" writable="false"></activiti:formProperty>
         <activiti:formProperty id="patientGender" name="性别" type="string" expression="${bloodCulture.patientGender}" writable="false"></activiti:formProperty>
         <activiti:formProperty id="patientAge" name="年龄" type="string" expression="${bloodCulture.patientAge}" writable="false"></activiti:formProperty>
         <activiti:formProperty id="patientCondition" name="病情描述" type="string" expression="${bloodCulture.patientCondition}" writable="false"></activiti:formProperty>
         <activiti:formProperty id="sampleRevTime" name="标本接收时间" type="date" expression="${bloodCulture.sampleRevTime}" datePattern="yyyy-MM-dd hh:mm:ss" writable="false"></activiti:formProperty>
-        <activiti:formProperty id="GhasVirus2" name="镜检是否见菌体" type="enum" required="true">
-          <activiti:value id="true" name="见菌体"></activiti:value>
-          <activiti:value id="false" name="未见菌体"></activiti:value>
-        </activiti:formProperty>
-        <activiti:formProperty id="Greason2" name="G染色镜检结果提示" type="enum" required="true">
+        <activiti:formProperty id="reasonres" name="G染色镜检结果提示" type="enum" required="true">
+          <activiti:value id="0" name="未见菌体"></activiti:value>
           <activiti:value id="1" name="短链状、长链状、成双、成单等排列，疑似链球菌"></activiti:value>
           <activiti:value id="2" name="葡萄状成堆、成双、成单等短链排列，疑似葡萄球菌"></activiti:value>
           <activiti:value id="3" name="3~5个一列，链状排列，疑似肠球菌"></activiti:value>
@@ -213,10 +201,10 @@
     <sequenceFlow id="flow5-1" sourceRef="G-ranse2" targetRef="exclusivegateway7"></sequenceFlow>
     <exclusiveGateway id="exclusivegateway7" name="Exclusive Gateway"></exclusiveGateway>
     <sequenceFlow id="flow5-2" name="见菌体" sourceRef="exclusivegateway7" targetRef="endevent1">
-      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${GhasVirus2 == 'true'}]]></conditionExpression>
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${reasonres!='0'}]]></conditionExpression>
     </sequenceFlow>
     <sequenceFlow id="flow5-3" name="未见菌体" sourceRef="exclusivegateway7" targetRef="endevent1">
-      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${GhasVirus2 == 'false'}]]></conditionExpression>
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${reasonres=='0'}]]></conditionExpression>
     </sequenceFlow>
     <endEvent id="endevent1" name="End"></endEvent>
   </process>

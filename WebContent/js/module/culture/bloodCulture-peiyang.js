@@ -9,7 +9,9 @@ function readFormFields(taskId) {
 
  	// 读取启动时的表单
 	$.getJSON(ctx + '/bloodCulture/get-form/task/' + taskId, function(datas) {
-		var trs = "";
+		var trs = "<tr><td>生成条码</td><td>";
+		trs +=datas.newCode;
+		trs +=" <a href='#'> 打印条码</a></td></tr>";
 		$.each(datas.taskFormData.formProperties, function() {
 			var className = this.required === true ? "required" : "";
 			this.value = this.value ? this.value : "";

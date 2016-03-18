@@ -8,9 +8,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
 
-import me.kafeitu.demo.activiti.entity.oa.Leave;
 import me.kafeitu.demo.activiti.util.Page;
 import me.kafeitu.demo.activiti.util.PageUtil;
 import me.kafeitu.demo.activiti.util.UserUtil;
@@ -26,9 +24,16 @@ import org.activiti.engine.form.FormProperty;
 import org.activiti.engine.history.HistoricProcessInstance;
 import org.activiti.engine.history.HistoricProcessInstanceQuery;
 import org.activiti.engine.identity.User;
+import org.activiti.engine.impl.RepositoryServiceImpl;
+import org.activiti.engine.impl.bpmn.behavior.UserTaskActivityBehavior;
 import org.activiti.engine.impl.form.StartFormDataImpl;
 import org.activiti.engine.impl.form.TaskFormDataImpl;
-import org.activiti.engine.impl.persistence.entity.SuspensionState;
+import org.activiti.engine.impl.persistence.entity.ExecutionEntity;
+import org.activiti.engine.impl.persistence.entity.ProcessDefinitionEntity;
+import org.activiti.engine.impl.pvm.PvmActivity;
+import org.activiti.engine.impl.pvm.PvmTransition;
+import org.activiti.engine.impl.pvm.process.ActivityImpl;
+import org.activiti.engine.impl.task.TaskDefinition;
 import org.activiti.engine.repository.ProcessDefinition;
 import org.activiti.engine.repository.ProcessDefinitionQuery;
 import org.activiti.engine.runtime.ProcessInstance;
@@ -51,7 +56,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @Controller
 @RequestMapping(value = "/bloodCulture")
 public class BloodCultureFormController {
-	public static String PROCESS_DEFINITION_KEY = "bloodCulture";
+	public static String PROCESS_DEFINITION_KEY = "bloodCulture2";
     private Logger logger = LoggerFactory.getLogger(getClass());
     @Autowired
     private RepositoryService repositoryService;
@@ -279,6 +284,9 @@ public class BloodCultureFormController {
      */
         List<FormProperty> formProperties = taskFormData.getFormProperties();
         for (FormProperty formProperty : formProperties) {
+        	if("code".equals(formProperty.getId())){
+        		result.put("newCode", formProperty.getValue()+ConstantUtil.SCAN_CODE_SPLIT+taskId);
+        	}
             Map<String, String> values = (Map<String, String>) formProperty.getType().getInformation("values");
             if (values != null) {
                 for (Entry<String, String> enumEntry : values.entrySet()) {
@@ -297,7 +305,7 @@ public class BloodCultureFormController {
     @RequestMapping(value = "task/complete/{taskId}")
     @SuppressWarnings("unchecked")
     public String completeTask(@PathVariable("taskId") String taskId, @RequestParam(value = "processType", required = false) String processType,
-                               RedirectAttributes redirectAttributes, HttpServletRequest request) {
+    		Model model,RedirectAttributes redirectAttributes, HttpServletRequest request) {
         Map<String, String> formProperties = new HashMap<String, String>();
 
         // 从request中读取参数然后转换
@@ -314,9 +322,35 @@ public class BloodCultureFormController {
 
         logger.debug("start form parameters: {}", formProperties);
 
+        //根据taskId查询task，得到通过task获取proc_ins_Id
+        String sql = "select * from ACT_RU_TASK RES1 WHERE RES1.ID_ = #{taskId} ";
+        NativeTaskQuery query = taskService.createNativeTaskQuery().sql(sql)
+                .parameter("taskId", taskId);
+        List<Task> taskList = query.list();
+        
+        String procInsId ="";
+        List<TaskDefinition> taskdefsList = new ArrayList<TaskDefinition>();
+        if(taskList != null && taskList.size()>0){
+        	Task t = taskList.get(0);
+        	procInsId =t.getProcessInstanceId();
+            ProcessDefinitionEntity def = (ProcessDefinitionEntity) ((RepositoryServiceImpl)repositoryService)
+            		.getDeployedProcessDefinition(t.getProcessDefinitionId());
+            List<ActivityImpl> activitiList = def.getActivities();  //rs是指RepositoryService的实例
+            String excId = t.getExecutionId();
+            ExecutionEntity execution = (ExecutionEntity) runtimeService.createExecutionQuery().executionId(excId).singleResult();
+            String activitiId = execution.getActivityId();
+            for(ActivityImpl activityImpl:activitiList){
+            	 String id = activityImpl.getId();
+            	 if(activitiId.equals(id)){
+	            	 System.out.println("当前任务："+activityImpl.getProperty("name")); //输出某个节点的某种属性
+	            	 //获得下一步的task类型，可能是0个或者1个或者>1
+	            	 taskdefsList = nextTaskDefinition(activityImpl, activityImpl.getId(),"${reasonres=='0'}");
+            	 }
+        	 }
+        }
+        
+        //任务完成的操作流程
         User user = UserUtil.getUserFromSession(request.getSession());
-
-        // 用户未登录不能操作，实际应用使用权限框架实现，例如Spring Security、Shiro等
         if (user == null || StringUtils.isBlank(user.getId())) {
             return "redirect:/login?timeout=true";
         }
@@ -326,11 +360,79 @@ public class BloodCultureFormController {
         } finally {
             identityService.setAuthenticatedUserId(null);
         }
-
-        redirectAttributes.addFlashAttribute("message", "当前操作完成");
-        return "redirect:/bloodCulture/task/list";
+        
+        //获得当前任务列表
+        List<Task> tasks = new ArrayList<Task>();
+        tasks = taskService.createTaskQuery().processInstanceId(procInsId).list();
+        List<Task> targetTasks = new ArrayList<Task>();
+        //用当前任务列表和下一步的任务类型进行匹配，找到下一步的任务。
+        for(Task task:tasks){
+        	for(TaskDefinition taskdef:taskdefsList){
+        		if(taskdef.getKey().equalsIgnoreCase(task.getTaskDefinitionKey())){
+        			targetTasks.add(task);
+        		}
+   		 	}
+        }
+        //下一步任务有多个就跳转到列表页面显示这多个任务，如果有1个就直接跳转到处理页面，如果没有就进入任务列表界面
+        if(targetTasks.size()>1){
+        	model.addAttribute("message", "操作完成,进入并行任务");
+            model.addAttribute("tasks", targetTasks);
+        	return "/culture/bloodCulture-task-list";
+        }else if(targetTasks.size()==1){
+        	redirectAttributes.addFlashAttribute("message", "操作完成,进入下一步任务");
+            return "redirect:/bloodCulture/task/claim/"+targetTasks.get(0).getId();
+        }else{
+        	redirectAttributes.addFlashAttribute("message", "操作完成,进入任务列表");
+        	return "redirect:/bloodCulture/task/list";
+        }
+        
+        //等待任务要处理下，但是下面一个任务taskid没有出来，后面只能用任务触发，但是条码需要提前生成，是个问题，除非用等待任务的taskid来查,考虑不用activiti的隐藏方式，最好是可以看到任务，但是不能点完成，
+        //传一个定时器参数到页面上面进行倒计时，页面上js任务好像不太合适。
+        //把定时任务和处理任务反过来，在定时任务后面加一个完成任务。
     }
     
+    /** 
+     * 下一个任务节点 
+     * @param activityImpl 
+     * @param activityId 
+     * @param elString 
+     * @return 
+     */  
+    private List<TaskDefinition> nextTaskDefinition(ActivityImpl activityImpl, String activityId, String elString){ 
+		List<TaskDefinition> taskDefList =  new ArrayList<TaskDefinition>();
+        if("userTask".equals(activityImpl.getProperty("type")) && !activityId.equals(activityImpl.getId())){  
+            TaskDefinition taskDefinition = ((UserTaskActivityBehavior)activityImpl.getActivityBehavior()).getTaskDefinition();  
+//              taskDefinition.getCandidateGroupIdExpressions().toArray();  
+            if(taskDefinition != null){
+            	taskDefList.add(taskDefinition);  
+            }
+        }else{  
+            List<PvmTransition> outTransitions = activityImpl.getOutgoingTransitions();  
+            List<PvmTransition> outTransitionsTemp = null;  
+            for(PvmTransition tr:outTransitions){    
+                PvmActivity ac = tr.getDestination(); //获取线路的终点节点    
+                if("exclusiveGateway".equals(ac.getProperty("type"))){  
+                    outTransitionsTemp = ac.getOutgoingTransitions();  
+                    if(outTransitionsTemp.size() == 1){  
+                    	taskDefList = nextTaskDefinition((ActivityImpl)outTransitionsTemp.get(0).getDestination(), activityId, elString);  
+                    }else if(outTransitionsTemp.size() > 1){  
+                        for(PvmTransition tr1 : outTransitionsTemp){  
+                            Object s = tr1.getProperty("conditionText");  
+                            if(elString.equals(s.toString().trim())){  
+                            	taskDefList =  nextTaskDefinition((ActivityImpl)tr1.getDestination(), activityId, elString);  
+                            }  
+                        }  
+                    }  
+                }else if("userTask".equals(ac.getProperty("type"))){  
+                    taskDefList.add(((UserTaskActivityBehavior)((ActivityImpl)ac).getActivityBehavior()).getTaskDefinition());  
+                }else{  
+                    System.out.println(ac.getProperty("type"));  
+                }  
+            }   
+        }  
+        return taskDefList; 
+    }  
+
     //***************************************************************************************************
     
     /**
